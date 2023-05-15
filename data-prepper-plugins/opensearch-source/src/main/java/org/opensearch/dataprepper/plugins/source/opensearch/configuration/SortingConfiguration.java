@@ -6,16 +6,23 @@
 package org.opensearch.dataprepper.plugins.source.opensearch.configuration;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import java.util.List;
-
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 public class SortingConfiguration {
+        private static final String DEFAULT_SORT_ORDER = "asc";
 
-    @JsonProperty("sort_key")
-    private List<SortingKeyOrderConfiguration> sortKey;
+        @NotEmpty
+        @NotNull
+        @JsonProperty("sort_key")
+        private String sortKey;
+        @JsonProperty("order")
+        private String order = DEFAULT_SORT_ORDER;
 
-    public List<SortingKeyOrderConfiguration> getSortKey() {
-        return sortKey;
-    }
+        public String getSortKey() {
+            return sortKey;
+        }
 
+        public String getOrder() {
+            return order;
+        }
 }

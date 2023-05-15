@@ -10,12 +10,12 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public enum WildCardConfiguration {
+public enum WildCardOptions {
     OPEN("open"),
     CLOSED("closed"),
     NONE("none"),
     ALL("all");
-    private static final Map<String, WildCardConfiguration> OPTIONS_MAP = Arrays.stream(WildCardConfiguration.values())
+    private static final Map<String, WildCardOptions> OPTIONS_MAP = Arrays.stream(WildCardOptions.values())
             .collect(Collectors.toMap(
                     value -> value.option,
                     value -> value
@@ -23,12 +23,12 @@ public enum WildCardConfiguration {
 
     private final String option;
 
-    WildCardConfiguration(final String option) {
+    WildCardOptions(final String option) {
         this.option = option;
     }
 
     @JsonCreator
-    static WildCardConfiguration fromOptionValue(final String option) {
+    static WildCardOptions fromOptionValue(final String option) {
         return OPTIONS_MAP.get(option);
     }
 }
