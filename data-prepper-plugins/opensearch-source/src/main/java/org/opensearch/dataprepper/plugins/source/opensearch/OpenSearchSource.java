@@ -47,10 +47,10 @@ public class OpenSearchSource implements Source<Record<Event>> {
         if (buffer == null) {
             throw new IllegalStateException("Buffer provided is null");
         }
-        startProcess(openSearchSourceConfiguration);
+        startProcess(openSearchSourceConfiguration,buffer);
     }
 
-    private void startProcess(final OpenSearchSourceConfiguration openSearchSourceConfiguration) {
+    private void startProcess(final OpenSearchSourceConfiguration openSearchSourceConfiguration,Buffer<Record<Event>> buffer) {
         PrepareConnection prepareConnection = new PrepareConnection();
 
         try {
@@ -63,10 +63,12 @@ public class OpenSearchSource implements Source<Record<Event>> {
             if (Boolean.TRUE.equals(sourceInfo.getHealthStatus())) {
                 if (OPEN_SEARCH.equalsIgnoreCase(datasource)) {
                     osClient = prepareConnection.prepareOpensearchConnection(openSearchSourceConfiguration);
-                    sourceInfoProvider.getCatIndices(openSearchSourceConfiguration, osClient);
-                    sourceInfoProvider.versionCheck(openSearchSourceConfiguration, sourceInfo, osClient);
+                    sourceInfoProvider.getCatOpenSearchIndices(openSearchSourceConfiguration, osClient);
+                    sourceInfoProvider.versionCheckForOpenSearch(openSearchSourceConfiguration, sourceInfo, osClient,buffer);
                 } else {
                     esClient = prepareConnection.prepareElasticSearchConnection();
+                    sourceInfoProvider.getCatElasticIndices(openSearchSourceConfiguration,esClient);
+                    sourceInfoProvider.versionCheckForElasticSearch(openSearchSourceConfiguration, sourceInfo, esClient,buffer);
                 }
 
             } else {

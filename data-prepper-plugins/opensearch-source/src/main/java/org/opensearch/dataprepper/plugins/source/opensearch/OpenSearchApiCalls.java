@@ -12,6 +12,9 @@ import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch.cat.indices.IndicesRecord;
 import org.opensearch.client.opensearch.core.ClearScrollRequest;
 import org.opensearch.client.opensearch.core.ClearScrollResponse;
+import org.opensearch.dataprepper.model.buffer.Buffer;
+import org.opensearch.dataprepper.model.event.Event;
+import org.opensearch.dataprepper.model.record.Record;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,14 +32,13 @@ import java.util.Map;
  */
 
 public class OpenSearchApiCalls implements SearchAPICalls {
+
     private static final String POINT_IN_TIME_KEEP_ALIVE = "keep_alive";
     private static final Logger LOG = LoggerFactory.getLogger(OpenSearchApiCalls.class);
     private static final String KEEP_ALIVE_VALUE = "24h";
     private static final Integer BATCH_SIZE_VALUE = 1000;
     private static final int OPEN_SEARCH_VERSION = 130;
-
     private static final String POINT_IN_TIME_ID ="pit_id";
-
     private OpenSearchClient client ;
     private SourceInfoProvider sourceInfoProvider = new SourceInfoProvider();
 
@@ -45,13 +47,13 @@ public class OpenSearchApiCalls implements SearchAPICalls {
     }
 
     @Override
-    public void generatePitId(final OpenSearchSourceConfiguration openSearchSourceConfiguration) {
+    public void generatePitId(final OpenSearchSourceConfiguration openSearchSourceConfiguration , Buffer<Record<Event>> buffer) {
             try {
                     Map pitResponse ;
                     String pitId = null;
                     PITRequest pitRequest = new PITRequest(new PITBuilder());
-                    int countIndices = sourceInfoProvider.getCatIndices(openSearchSourceConfiguration,client).size();
-                    List<IndicesRecord> indicesList = sourceInfoProvider.getCatIndices(openSearchSourceConfiguration,client);
+                    int countIndices = sourceInfoProvider.getCatIndicesOpenSearch(openSearchSourceConfiguration,client).size();
+                    List<IndicesRecord> indicesList = sourceInfoProvider.getCatIndicesOpenSearch(openSearchSourceConfiguration,client);
                     for(int count= 0 ; count < countIndices ; count++) {
                         pitRequest.setIndex(new StringBuilder(indicesList.get(count).index()));
                         Map<String, String> params = new HashMap<>();
@@ -60,7 +62,7 @@ public class OpenSearchApiCalls implements SearchAPICalls {
                         pitResponse = client._transport().performRequest(pitRequest, PITRequest.ENDPOINT, client._transportOptions());
                         LOG.info("PIT Response is : {}  ", pitResponse);
                         pitId = pitResponse.get(POINT_IN_TIME_ID).toString();
-                        searchPitIndexes( pitId, openSearchSourceConfiguration);
+                        searchPitIndexes( pitId, openSearchSourceConfiguration , buffer);
                         deletePitId(pitId);
                     }
             } catch (Exception e){
@@ -68,12 +70,12 @@ public class OpenSearchApiCalls implements SearchAPICalls {
             }
     }
     @Override
-    public String searchPitIndexes(String pitId, OpenSearchSourceConfiguration openSearchSourceConfiguration) {
-        return "getResponseBody";
+    public void searchPitIndexes(String pitId, OpenSearchSourceConfiguration openSearchSourceConfiguration ,Buffer<Record<Event>> buffer) {
+
     }
 
     @Override
-    public String generateScrollId(final OpenSearchSourceConfiguration openSearchSourceConfiguration) {
+    public void generateScrollId(final OpenSearchSourceConfiguration openSearchSourceConfiguration ,Buffer<Record<Event>> buffer) {
         ScrollRequest scrollRequest = new ScrollRequest(new ScrollBuilder());
         StringBuilder indexList = Utility.getIndexList(openSearchSourceConfiguration);
         scrollRequest.setIndex(indexList);
@@ -83,12 +85,12 @@ public class OpenSearchApiCalls implements SearchAPICalls {
         {
            response =  client._transport().performRequest(scrollRequest,ScrollRequest.ENDPOINT,client._transportOptions());
            LOG.debug("Response is {}  " , response);
+           sourceInfoProvider.writeClusterDataToBuffer(response.toString(),buffer);
         }
        catch (Exception e)
        {
            LOG.error("Error occured "+e);
        }
-        return response.toString();
     }
     @Override
     public String searchScrollIndexes(final OpenSearchSourceConfiguration openSearchSourceConfiguration) {
