@@ -118,28 +118,20 @@ public class ElasticSearchApiCalls implements SearchAPICalls {
         return closePointInTimeResponse.succeeded();
     }
 
-    private SearchResponse getSearchForSort(final OpenSearchSourceConfiguration openSearchSourceConfiguration, long searchAfter) {
+    private SearchResponse getSearchForSort(final OpenSearchSourceConfiguration openSearchSourceConfiguration, long searchAfter, List<SortOptions> sortOptionsList ) {
 
         SearchResponse response = null;
         SearchRequest searchRequest = null;
 
-        List<SortOptions> sortOptionsList = new ArrayList<>();
         StringBuilder indexList = Utility.getIndexList(openSearchSourceConfiguration);
-        LOG.info("indexList: " + indexList);
-        for(int sortIndex = 0 ; sortIndex < openSearchSourceConfiguration.getSearchConfiguration().getSorting().size() ; sortIndex++) {
-            String sortOrder = openSearchSourceConfiguration.getSearchConfiguration().getSorting().get(sortIndex).getSortKey();
-            SortOrder order = sortOrder.toLowerCase().equalsIgnoreCase("asc") ? SortOrder.Asc : SortOrder.Desc;
-            int finalSortIndex = sortIndex;
-            SortOptions sortOptions = new SortOptions.Builder().field(f -> f.field(openSearchSourceConfiguration.getSearchConfiguration().getSorting().get(finalSortIndex).getSortKey()).order(order)).build();
-            sortOptionsList.add(sortOptions);
-        }
+
         if (!openSearchSourceConfiguration.getQueryParameterConfiguration().getFields().isEmpty()) {
             String[] queryParam = openSearchSourceConfiguration.getQueryParameterConfiguration().getFields().get(0).split(":");
             searchRequest = SearchRequest
                     .of(e -> e.index(indexList.toString()).size(SEARCH_AFTER_SIZE).query(q -> q.match(t -> t
                                     .field(queryParam[0].trim())
                                     .query(queryParam[1].trim()))).searchAfter(s -> s.stringValue(String.valueOf(searchAfter)))
-                            .sort(sortOptionsList));
+                                    .sort(sortOptionsList));
         } else {
             searchRequest = SearchRequest
                     .of(e -> e.index(indexList.toString()).size(SEARCH_AFTER_SIZE).searchAfter(s -> s.stringValue(String.valueOf(searchAfter)))
@@ -176,8 +168,8 @@ public class ElasticSearchApiCalls implements SearchAPICalls {
     }
 
     public void searchPitIndexesForPagination(final OpenSearchSourceConfiguration openSearchSourceConfiguration, final ElasticsearchClient client, long currentSearchAfterValue, Buffer<Record<Event>> buffer) throws TimeoutException {
-        int batchSize = openSearchSourceConfiguration.getSearchConfiguration().getBatchSize();
-        SearchResponse response = getSearchForSort(openSearchSourceConfiguration,currentSearchAfterValue);
+        List<SortOptions> sortOptionsList = getSortOption(openSearchSourceConfiguration);
+        SearchResponse response = getSearchForSort(openSearchSourceConfiguration,currentSearchAfterValue, sortOptionsList);
         currentSearchAfterValue = extractSortValue(response, buffer);
         if(currentSearchAfterValue != 0) {
             searchPitIndexesForPagination(openSearchSourceConfiguration, client, currentSearchAfterValue,buffer);
@@ -187,6 +179,19 @@ public class ElasticSearchApiCalls implements SearchAPICalls {
         }
     }
 
+    private List<SortOptions> getSortOption(final OpenSearchSourceConfiguration openSearchSourceConfiguration) {
+        List<SortOptions> sortOptionsList = new ArrayList<>();
+        for(int sortIndex = 0 ; sortIndex < openSearchSourceConfiguration.getSearchConfiguration().getSorting().size() ; sortIndex++) {
+
+            String sortOrder = openSearchSourceConfiguration.getSearchConfiguration().getSorting().get(sortIndex).getOrder();
+            SortOrder order = sortOrder.toLowerCase().equalsIgnoreCase("asc") ? SortOrder.Asc : SortOrder.Desc;
+            int finalSortIndex = sortIndex;
+            SortOptions sortOptions = new SortOptions.Builder().field(f -> f.field(openSearchSourceConfiguration.getSearchConfiguration()
+                    .getSorting().get(finalSortIndex).getSortKey()).order(order)).build();
+            sortOptionsList.add(sortOptions);
+        }
+        return sortOptionsList;
+    }
     private long extractSortValue(SearchResponse response, Buffer<Record<Event>> buffer) throws TimeoutException {
         HitsMetadata hitsMetadata = response.hits();
         int size = hitsMetadata.hits().size();
