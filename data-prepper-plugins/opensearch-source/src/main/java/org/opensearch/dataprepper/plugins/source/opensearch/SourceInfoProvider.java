@@ -183,7 +183,7 @@ public class SourceInfoProvider {
                 }
             }
             else {
-                elasticSearchApiCalls.searchPitIndexes(openSearchSourceConfiguration,buffer);
+                elasticSearchApiCalls.searchPitIndexes(null,openSearchSourceConfiguration,buffer);
             }
 
         } else if (sourceInfo.getDataSource().equalsIgnoreCase(ELASTIC_SEARCH) && (osVersionIntegerValue < VERSION_7_10_0)) {

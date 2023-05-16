@@ -66,7 +66,7 @@ public class ElasticSearchApiCalls implements SearchAPICalls {
         //return response.id();
     }
     @Override
-    public String searchPitIndexes(final OpenSearchSourceConfiguration openSearchSourceConfiguration, Buffer<Record<Event>> buffer) {
+    public String searchPitIndexes(final String pitID , final OpenSearchSourceConfiguration openSearchSourceConfiguration, Buffer<Record<Event>> buffer) {
         SearchResponse<ObjectNode> searchResponse = null;
         try {
             searchResponse = elasticsearchClient.search(req ->

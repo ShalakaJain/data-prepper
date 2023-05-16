@@ -9,7 +9,7 @@ import java.io.IOException;
 public interface SearchAPICalls {
       void generatePitId(final OpenSearchSourceConfiguration openSearchSourceConfiguration ,Buffer<Record<Event>> buffer) throws IOException;
 
-      String searchPitIndexes(final String pitId, OpenSearchSourceConfiguration openSearchSourceConfiguration, Buffer<Record<Event>> buffer);
+      String searchPitIndexes( final String pitID ,final OpenSearchSourceConfiguration openSearchSourceConfiguration, Buffer<Record<Event>> buffer);
 
       void generateScrollId(final OpenSearchSourceConfiguration openSearchSourceConfiguration ,Buffer<Record<Event>> buffers);
 

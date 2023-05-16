@@ -70,8 +70,8 @@ public class OpenSearchApiCalls implements SearchAPICalls {
             }
     }
     @Override
-    public void searchPitIndexes(String pitId, OpenSearchSourceConfiguration openSearchSourceConfiguration ,Buffer<Record<Event>> buffer) {
-
+    public String searchPitIndexes(final String pitID ,final OpenSearchSourceConfiguration openSearchSourceConfiguration ,Buffer<Record<Event>> buffer) {
+     return "";
     }
 
     @Override
