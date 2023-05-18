@@ -69,6 +69,14 @@ public class DefaultEventMetadata implements EventMetadata {
     }
 
     @Override
+    public Object getAttribute(final String attributeKey) {
+        String key = (attributeKey.charAt(0) == '/') ? attributeKey.substring(1) : attributeKey;
+
+        // Does not support recursive or inner-object lookups for now.
+        return attributes.get(key);
+    }
+
+    @Override
     public Set<String> getTags() {
         return tags;
     }
@@ -84,8 +92,8 @@ public class DefaultEventMetadata implements EventMetadata {
     }
 
     @Override
-    public void addTag(final String tag) {
-        tags.add(tag);
+    public void addTags(final List<String> newTags) {
+        tags.addAll(newTags);
     }
 
     @Override
