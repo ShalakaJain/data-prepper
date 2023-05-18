@@ -25,7 +25,7 @@ opensearch-pipeline:
       query:
         fields: ["play_name : hamlet","speaker : 1"]
       search_options:
-        batch_size: 1000
+        batch_size: 1500
         expand_wildcards: "open"
         sorting:
           - sort_key: "line_id"

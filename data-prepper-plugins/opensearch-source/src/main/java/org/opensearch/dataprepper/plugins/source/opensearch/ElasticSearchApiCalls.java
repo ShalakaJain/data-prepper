@@ -15,16 +15,12 @@ import co.elastic.clients.elasticsearch.core.*;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.hc.core5.http.HttpStatus;
 import org.json.simple.JSONObject;
-import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.dataprepper.model.buffer.Buffer;
 import org.opensearch.dataprepper.model.event.Event;
 import org.opensearch.dataprepper.model.record.Record;
-import org.opensearch.dataprepper.plugins.source.opensearch.configuration.SortingConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -63,10 +59,10 @@ public class ElasticSearchApiCalls implements SearchAPICalls {
             } catch (Exception ex){
                 LOG.error(" {}",ex.getMessage());
             }
-        //return response.id();
     }
+
     @Override
-    public String searchPitIndexes(final String pitID , final OpenSearchSourceConfiguration openSearchSourceConfiguration, Buffer<Record<Event>> buffer) {
+    public void searchPitIndexes(final String pitID , final OpenSearchSourceConfiguration openSearchSourceConfiguration, Buffer<Record<Event>> buffer) {
         SearchResponse<ObjectNode> searchResponse = null;
         try {
             searchResponse = elasticsearchClient.search(req ->
@@ -79,8 +75,8 @@ public class ElasticSearchApiCalls implements SearchAPICalls {
         } catch (Exception ex) {
             LOG.error(ex.getMessage());
         }
-        return searchResponse.toString();
     }
+
     @Override
     public void generateScrollId(final OpenSearchSourceConfiguration openSearchSourceConfiguration,Buffer<Record<Event>> buffer) {
         SearchResponse response = null;
@@ -93,12 +89,13 @@ public class ElasticSearchApiCalls implements SearchAPICalls {
         } catch (IOException e) {
             LOG.error(e.getMessage());
         }
-        //return response.scrollId();
     }
+
     public co.elastic.clients.elasticsearch.core.ScrollRequest nextScrollRequest(final String scrollId) {
         return ScrollRequest
                 .of(scrollRequest -> scrollRequest.scrollId(scrollId).scroll(Time.of(t -> t.time(TIME_VALUE))));
     }
+
     @Override
     public String searchScrollIndexes(final OpenSearchSourceConfiguration openSearchSourceConfiguration) {
         return null;
@@ -164,7 +161,6 @@ public class ElasticSearchApiCalls implements SearchAPICalls {
             LOG.error(e.getMessage());
         }
         return response;
-
     }
 
     public void searchPitIndexesForPagination(final OpenSearchSourceConfiguration openSearchSourceConfiguration, final ElasticsearchClient client, long currentSearchAfterValue, Buffer<Record<Event>> buffer) throws TimeoutException {
@@ -192,6 +188,7 @@ public class ElasticSearchApiCalls implements SearchAPICalls {
         }
         return sortOptionsList;
     }
+
     private long extractSortValue(SearchResponse response, Buffer<Record<Event>> buffer) throws TimeoutException {
         HitsMetadata hitsMetadata = response.hits();
         int size = hitsMetadata.hits().size();

@@ -9,6 +9,7 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.commons.lang3.StringUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -27,10 +28,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.Duration;
+import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
@@ -70,6 +69,8 @@ public class SourceInfoProvider {
     private static final int VERSION_1_3_0 = 130;
 
     private static final int VERSION_7_10_0 = 7100;
+
+    private static final Integer BATCH_SIZE_VALUE = 1000;
 
     private  final JsonFactory jsonFactory = new JsonFactory();
 
@@ -153,19 +154,15 @@ public class SourceInfoProvider {
 
     public void versionCheckForOpenSearch(final OpenSearchSourceConfiguration openSearchSourceConfiguration, final SourceInfo sourceInfo, final OpenSearchClient client ,Buffer<Record<Event>> buffer)  throws TimeoutException, IOException {
         int osVersionIntegerValue = Integer.parseInt(sourceInfo.getOsVersion().replaceAll(REGULAR_EXPRESSION, ""));
-        osVersionIntegerValue = 123; //to test Scroll API
-        OpenSearchApiCalls openSearchApiCalls = new OpenSearchApiCalls(client);
+       // osVersionIntegerValue = 123; //to test Scroll API
+        objectMapper.registerModule(new JavaTimeModule());
+        final Duration rate = objectMapper.convertValue(openSearchSourceConfiguration.getSchedulingParameterConfiguration().getRate(), Duration.class);
 
         if ((sourceInfo.getDataSource().equalsIgnoreCase(OPEN_SEARCH))
                 && (osVersionIntegerValue >= VERSION_1_3_0)) {
-            openSearchApiCalls.generatePitId(openSearchSourceConfiguration , buffer);
-
+            new Timer().scheduleAtFixedRate(new OpenSearchPITTask(openSearchSourceConfiguration,buffer,client),openSearchSourceConfiguration.getSchedulingParameterConfiguration().getStartTime().getSecond() , rate.toMillis());
         } else if (sourceInfo.getDataSource().equalsIgnoreCase(OPEN_SEARCH) && (osVersionIntegerValue < VERSION_1_3_0)) {
-            openSearchApiCalls.generateScrollId(openSearchSourceConfiguration,buffer);
-         //   LOG.info("Scroll Response : {} ", scrollId);
-           /* String scrollResponse = openSearchApiCalls.searchScrollIndexes(openSearchSourceConfiguration);
-            LOG.info("Data in batches : {} ", scrollResponse);*/
-
+            new Timer().scheduleAtFixedRate(new OpenSearchScrollTask(openSearchSourceConfiguration,buffer),openSearchSourceConfiguration.getSchedulingParameterConfiguration().getStartTime().getSecond() , rate.toMillis());
         }
     }
     public void versionCheckForElasticSearch(final OpenSearchSourceConfiguration openSearchSourceConfiguration, final SourceInfo sourceInfo, final ElasticsearchClient client ,Buffer<Record<Event>> buffer)  throws TimeoutException, IOException {
@@ -174,7 +171,7 @@ public class SourceInfoProvider {
         ElasticSearchApiCalls elasticSearchApiCalls = new ElasticSearchApiCalls(client);
         if ((sourceInfo.getDataSource().equalsIgnoreCase(ELASTIC_SEARCH))
                 && (osVersionIntegerValue >= VERSION_7_10_0)) {
-            if(openSearchSourceConfiguration.getSearchConfiguration().getBatchSize() > 1000) {
+            if( BATCH_SIZE_VALUE < openSearchSourceConfiguration.getSearchConfiguration().getBatchSize()) {
                 if(!openSearchSourceConfiguration.getSearchConfiguration().getSorting().isEmpty()) {
                     elasticSearchApiCalls.searchPitIndexesForPagination(openSearchSourceConfiguration, client, 0L, buffer);
                 }

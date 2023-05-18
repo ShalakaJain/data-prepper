@@ -26,9 +26,9 @@ public class PrepareConnection {
 
    private static final String HEADER_VALUE = "Elasticsearch";
 
-   public OpenSearchClient prepareOpensearchConnection(OpenSearchSourceConfiguration openSearchSourceConfiguration) {
-     // getHostDetails(openSearchSourceConfiguration.getHosts().get(0));
-      final HttpHost host = new HttpHost("http", "localhost", 9200);
+   public OpenSearchClient prepareOpensearchConnection(OpenSearchSourceConfiguration openSearchSourceConfiguration) throws MalformedURLException {
+      URL urlLink  = getHostDetails(openSearchSourceConfiguration.getHosts().get(0));
+      final HttpHost host = new HttpHost(urlLink.getProtocol(), urlLink.getHost(), urlLink.getPort());
       final BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
       final OpenSearchTransport transport = ApacheHttpClient5TransportBuilder
               .builder(host)
@@ -37,8 +37,9 @@ public class PrepareConnection {
       return new OpenSearchClient(transport);
    }
 
-   public ElasticsearchClient prepareElasticSearchConnection() {
-      RestClient client = org.elasticsearch.client.RestClient.builder(new org.apache.http.HttpHost("localhost", 9200)).
+   public ElasticsearchClient prepareElasticSearchConnection(final OpenSearchSourceConfiguration openSearchSourceConfiguration) throws MalformedURLException {
+      URL urlLink  = getHostDetails(openSearchSourceConfiguration.getHosts().get(0));
+      RestClient client = org.elasticsearch.client.RestClient.builder(new org.apache.http.HttpHost(urlLink.getHost(), urlLink.getPort())).
               setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder
                       .setDefaultHeaders(List.of(new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())))
                       .addInterceptorLast((HttpResponseInterceptor) (response, context) -> response.addHeader(HEADER_NAME, HEADER_VALUE))).build();
@@ -47,13 +48,9 @@ public class PrepareConnection {
       return new ElasticsearchClient(transport);
    }
 
-   private String[] getHostDetails(String url) throws MalformedURLException {
-      String[] hostDetails = new String[3];
+   private URL getHostDetails(String url) throws MalformedURLException {
       URL urlLink = new URL(url);
-      hostDetails[0] = urlLink.getProtocol();
-      hostDetails[1] = urlLink.getHost();
-      hostDetails[2] = String.valueOf(urlLink.getPort());
-      return hostDetails;
+      return urlLink;
    }
 }
 

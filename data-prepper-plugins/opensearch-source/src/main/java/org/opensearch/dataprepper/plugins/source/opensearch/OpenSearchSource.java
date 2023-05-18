@@ -66,7 +66,7 @@ public class OpenSearchSource implements Source<Record<Event>> {
                     sourceInfoProvider.getCatOpenSearchIndices(openSearchSourceConfiguration, osClient);
                     sourceInfoProvider.versionCheckForOpenSearch(openSearchSourceConfiguration, sourceInfo, osClient,buffer);
                 } else {
-                    esClient = prepareConnection.prepareElasticSearchConnection();
+                    esClient = prepareConnection.prepareElasticSearchConnection(openSearchSourceConfiguration);
                     sourceInfoProvider.getCatElasticIndices(openSearchSourceConfiguration,esClient);
                     sourceInfoProvider.versionCheckForElasticSearch(openSearchSourceConfiguration, sourceInfo, esClient,buffer);
                 }
