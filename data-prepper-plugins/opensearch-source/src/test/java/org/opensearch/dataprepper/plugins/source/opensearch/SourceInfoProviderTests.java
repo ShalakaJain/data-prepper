@@ -6,56 +6,56 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.stubbing.OngoingStubbing;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.dataprepper.model.buffer.Buffer;
 import org.opensearch.dataprepper.plugins.source.opensearch.configuration.SchedulingParameterConfiguration;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.opensearch.dataprepper.plugins.source.opensearch.configuration.SearchConfiguration;
+import org.opensearch.dataprepper.plugins.source.opensearch.configuration.SortingConfiguration;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
+
 import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
+
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class SourceInfoProviderTests {
-
+    private static final String CLUSTER_STATS_ENDPOINTS = "_cluster/stats";
+    private static final String GET_REQUEST_MEHTOD = "GET";
+    private static final String CONTENT_TYPE = "content-type";
+    private static final String CONTENT_TYPE_VALUE = "application/json";
+    URL obj = null;
     HttpURLConnection con = null;
-
     @InjectMocks
     SourceInfoProvider sourceInfoProvider;
-
     @Mock
     OpenSearchSourceConfiguration openSearchSourceConfiguration;
-
-    private static final String CLUSTER_STATS_ENDPOINTS = "_cluster/stats";
-
-    private static final String GET_REQUEST_MEHTOD = "GET";
-
-    private static final String CONTENT_TYPE = "content-type";
-
-    private static final String CONTENT_TYPE_VALUE = "application/json";
-
-    URL obj = null;
-
     @Mock
     private OpenSearchClient osClient;
-
-    @Mock
-    private ElasticsearchClient esClient;
-
     @Mock
     private Buffer buffer;
+
+    @Mock
+    private OpenSearchApiCalls openSearchApiCalls;
+
+    @Mock
+    ElasticSearchApiCalls elasticSearchApiCalls;
+
+    @Mock
+    ElasticsearchClient esClient;
 
     @BeforeEach
     public void setup() {
@@ -64,12 +64,11 @@ public class SourceInfoProviderTests {
         when(openSearchSourceConfiguration.getMaxRetries()).thenReturn(5);
         when(openSearchSourceConfiguration.getHosts()).thenReturn(new ArrayList<String>(Arrays.asList("http://localhost:9200/")));
         SchedulingParameterConfiguration schedulingParameters = mock(SchedulingParameterConfiguration.class);
-        when(schedulingParameters.getRate()).thenReturn(Duration.parse("PT8H"));
-        when(schedulingParameters.getStartTime()).thenReturn(LocalDateTime.now());
+        //when(schedulingParameters.getRate()).thenReturn(new Duration());
+        //when(schedulingParameters.getStartTime()).thenReturn(new Date());
         when(schedulingParameters.getJobCount()).thenReturn(3);
         when(openSearchSourceConfiguration.getSchedulingParameterConfiguration()).thenReturn(schedulingParameters);
     }
-
     @Test
     public void testCheckStatus() throws IOException, ParseException {
         obj =  new URL(openSearchSourceConfiguration.getHosts().get(0) + CLUSTER_STATS_ENDPOINTS);
@@ -99,10 +98,31 @@ public class SourceInfoProviderTests {
 
     @Test
     public void testElasticVersionCheck() throws IOException, ParseException, TimeoutException {
-        obj =  new URL(openSearchSourceConfiguration.getHosts().get(0));
+        obj = new URL(openSearchSourceConfiguration.getHosts().get(0));
         SourceInfo sourceInfo = new SourceInfo();
         sourceInfo.setOsVersion("7.9.0");
         sourceInfo.setDataSource("elasticsearch");
-        sourceInfoProvider.versionCheckForElasticSearch(openSearchSourceConfiguration,sourceInfo,esClient,buffer);
+        sourceInfoProvider.versionCheckForElasticSearch(openSearchSourceConfiguration, sourceInfo, esClient, buffer);
+    }
+    @Test
+    public void testversionCheckForOpenSearchForLowerVersion() throws IOException, ParseException, TimeoutException {
+        obj =  new URL(openSearchSourceConfiguration.getHosts().get(0));
+        SourceInfo sourceInfo = new SourceInfo();
+        sourceInfo.setOsVersion("129");
+        sourceInfo.setDataSource("opensearch");
+        MockedStatic utility = mockStatic(Utility.class);
+        Mockito.doNothing().when(openSearchApiCalls).generateScrollId(openSearchSourceConfiguration,buffer);
+        sourceInfoProvider.versionCheckForOpenSearch(openSearchSourceConfiguration,sourceInfo,osClient,buffer);
+    }
+
+    @Test
+    public void testversionCheckForOpenSearchForHigherVersion() throws IOException, ParseException, TimeoutException {
+        obj =  new URL(openSearchSourceConfiguration.getHosts().get(0));
+        SourceInfo sourceInfo = new SourceInfo();
+        sourceInfo.setOsVersion("130");
+        sourceInfo.setDataSource("opensearch");
+        //MockedStatic utility = mockStatic(Utility.class);
+        Mockito.doNothing().when(openSearchApiCalls).generatePitId(openSearchSourceConfiguration,buffer);
+        sourceInfoProvider.versionCheckForOpenSearch(openSearchSourceConfiguration,sourceInfo,osClient,buffer);
     }
 }

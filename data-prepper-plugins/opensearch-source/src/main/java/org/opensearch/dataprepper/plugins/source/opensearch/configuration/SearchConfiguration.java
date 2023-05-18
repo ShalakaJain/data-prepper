@@ -31,4 +31,15 @@ public class SearchConfiguration {
     public List<SortingConfiguration> getSorting() {
         return sorting;
     }
+    public void setBatchSize(Integer batchSize) {
+        this.batchSize = batchSize;
+    }
+
+    public void setExpandWildcards(WildCardOptions expandWildcards) {
+        this.expandWildcards = expandWildcards;
+    }
+
+    public void setSorting(List<SortingConfiguration> sorting) {
+        this.sorting = sorting;
+    }
 }

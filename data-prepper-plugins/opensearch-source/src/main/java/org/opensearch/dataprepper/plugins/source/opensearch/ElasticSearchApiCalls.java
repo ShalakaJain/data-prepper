@@ -36,7 +36,7 @@ public class ElasticSearchApiCalls implements SearchAPICalls {
 
     private static final int ELASTIC_SEARCH_VERSION = 7100;
 
-    private static final int SEARCH_AFTER_SIZE = 100;
+    private static final int SEARCH_AFTER_SIZE = 2000;
 
     private ElasticsearchClient elasticsearchClient;
 
@@ -71,6 +71,8 @@ public class ElasticSearchApiCalls implements SearchAPICalls {
             searchResponse.hits().hits().stream()
                     .map(Hit::source).collect(Collectors.toList());
             LOG.debug("Search Response {} ", searchResponse);
+            sourceInfoProvider.writeClusterDataToBuffer(searchResponse.fields().toString(),buffer);
+
 
         } catch (Exception ex) {
             LOG.error(ex.getMessage());
@@ -121,8 +123,7 @@ public class ElasticSearchApiCalls implements SearchAPICalls {
         SearchRequest searchRequest = null;
 
         StringBuilder indexList = Utility.getIndexList(openSearchSourceConfiguration);
-
-        if (!openSearchSourceConfiguration.getQueryParameterConfiguration().getFields().isEmpty()) {
+        if (openSearchSourceConfiguration.getQueryParameterConfiguration().getFields() != null) {
             String[] queryParam = openSearchSourceConfiguration.getQueryParameterConfiguration().getFields().get(0).split(":");
             searchRequest = SearchRequest
                     .of(e -> e.index(indexList.toString()).size(SEARCH_AFTER_SIZE).query(q -> q.match(t -> t

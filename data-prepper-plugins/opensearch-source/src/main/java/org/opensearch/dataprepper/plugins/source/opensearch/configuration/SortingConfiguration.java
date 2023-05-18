@@ -25,4 +25,12 @@ public class SortingConfiguration {
         public String getOrder() {
             return order;
         }
+
+        public void setSortKey(String sortKey) {
+                this.sortKey = sortKey;
+        }
+
+        public void setOrder(String order) {
+                this.order = order;
+        }
 }
