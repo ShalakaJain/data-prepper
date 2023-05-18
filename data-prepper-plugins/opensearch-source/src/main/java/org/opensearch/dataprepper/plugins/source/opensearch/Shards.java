@@ -1,8 +1,11 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 package org.opensearch.dataprepper.plugins.source.opensearch;
 
 import com.fasterxml.jackson.annotation.*;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -13,16 +16,21 @@ import java.util.Map;
     "skipped",
     "failed"
 })
+
 public class Shards {
 
     @JsonProperty("total")
     private Integer total;
+
     @JsonProperty("successful")
     private Integer successful;
+
     @JsonProperty("skipped")
     private Integer skipped;
+
     @JsonProperty("failed")
     private Integer failed;
+
     @JsonIgnore
     private Map<String, Object> additionalProperties = new LinkedHashMap<String, Object>();
 

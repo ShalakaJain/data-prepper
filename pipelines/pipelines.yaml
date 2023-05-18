@@ -20,12 +20,12 @@ opensearch-pipeline:
           - ""
       scheduling:
         rate: P90DT3H4M
-        job_count: 3
+        job_count: 1
         start_time: 2023-05-15T18:00:00
       query:
         fields: ["play_name : hamlet","speaker : 1"]
       search_options:
-        batch_size: 1500
+        batch_size: 1000
         expand_wildcards: "open"
         sorting:
           - sort_key: "line_id"

@@ -1,8 +1,11 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 package org.opensearch.dataprepper.plugins.source.opensearch;
 
 import com.fasterxml.jackson.annotation.*;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -11,12 +14,15 @@ import java.util.Map;
     "value",
     "relation"
 })
+
 public class Total {
 
     @JsonProperty("value")
     private Integer value;
+
     @JsonProperty("relation")
     private String relation;
+
     @JsonIgnore
     private Map<String, Object> additionalProperties = new LinkedHashMap<String, Object>();
 

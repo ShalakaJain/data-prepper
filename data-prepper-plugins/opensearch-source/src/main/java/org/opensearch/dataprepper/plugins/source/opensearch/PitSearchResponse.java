@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 package org.opensearch.dataprepper.plugins.source.opensearch;
 
@@ -19,14 +23,19 @@ public class PitSearchResponse {
 
     @JsonProperty("pit_id")
     private String pitId;
+
     @JsonProperty("took")
     private Integer took;
+
     @JsonProperty("timed_out")
     private Boolean timedOut;
+
     @JsonProperty("_shards")
     private Shards shards;
+
     @JsonProperty("hits")
     private Hits hits;
+
     @JsonIgnore
     private Map<String, Object> additionalProperties = new LinkedHashMap<String, Object>();
 

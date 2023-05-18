@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.dataprepper.plugins.source.opensearch;
 
 import org.opensearch.client.opensearch.OpenSearchClient;
@@ -30,7 +35,7 @@ public class OpenSearchScrollTask extends TimerTask {
         int numRuns = 0;
         while (numRuns++ <= openSearchSourceConfiguration.getSchedulingParameterConfiguration().getJobCount()) {
             OpenSearchApiCalls openSearchApiCalls = new OpenSearchApiCalls(osClient);
-            openSearchApiCalls.generateScrollId(openSearchSourceConfiguration , buffer);
+            openSearchApiCalls.getScrollResponse(openSearchSourceConfiguration , buffer);
         }
     }
 }

@@ -5,10 +5,11 @@
 
 package org.opensearch.dataprepper.plugins.source.opensearch;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
 public class Utility {
+
     public static StringBuilder getIndexList(OpenSearchSourceConfiguration openSearchSourceConfiguration)
     {
         List<String> include = openSearchSourceConfiguration.getIndexParametersConfiguration().getInclude();

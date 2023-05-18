@@ -11,21 +11,32 @@ import org.opensearch.client.transport.Endpoint;
 import org.opensearch.client.transport.endpoints.SimpleEndpoint;
 import java.util.HashMap;
 import java.util.Map;
+
 public class ScrollRequest {
+
     private StringBuilder index;
+
     private Integer batchSize;
+
     private static final String GET_REQUEST_MEHTOD = "GET";
+
     private static final String SEARCH_URL = "/_search";
+
     static JsonpDeserializer<String> newResponseParser;
+
     final static JsonpDeserializer<Map> deserializer = new JacksonValueParser<>(Map.class);
+
     public ScrollRequest(ScrollBuilder scrollBuilder) {
     }
+
     public void setIndex(StringBuilder index) {
         this.index = index;
     }
+
     public void setBatchSize(Integer batchSize) {
         this.batchSize = batchSize;
     }
+
     public static final Endpoint<ScrollRequest, Map, ErrorResponse> ENDPOINT =
             new SimpleEndpoint<>(
                     r -> GET_REQUEST_MEHTOD,
@@ -37,5 +48,5 @@ public class ScrollRequest {
                     SimpleEndpoint.emptyMap(), false,
                     deserializer
             );
-
 }
+

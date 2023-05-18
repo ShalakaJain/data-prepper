@@ -1,8 +1,11 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 package org.opensearch.dataprepper.plugins.source.opensearch;
 
 import com.fasterxml.jackson.annotation.*;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -16,22 +19,30 @@ import java.util.Map;
     "speaker",
     "text_entry"
 })
+
 public class Source {
 
     @JsonProperty("type")
     private String type;
+
     @JsonProperty("line_id")
     private Integer lineId;
+
     @JsonProperty("play_name")
     private String playName;
+
     @JsonProperty("speech_number")
     private Integer speechNumber;
+
     @JsonProperty("line_number")
     private String lineNumber;
+
     @JsonProperty("speaker")
     private String speaker;
+
     @JsonProperty("text_entry")
     private String textEntry;
+
     @JsonIgnore
     private Map<String, Object> additionalProperties = new LinkedHashMap<String, Object>();
 

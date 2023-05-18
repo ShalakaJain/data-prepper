@@ -80,7 +80,7 @@ public class ElasticSearchApiCalls implements SearchAPICalls {
     }
 
     @Override
-    public void generateScrollId(final OpenSearchSourceConfiguration openSearchSourceConfiguration,Buffer<Record<Event>> buffer) {
+    public void getScrollResponse(final OpenSearchSourceConfiguration openSearchSourceConfiguration,Buffer<Record<Event>> buffer) {
         SearchResponse response = null;
         StringBuilder indexList = Utility.getIndexList(openSearchSourceConfiguration);
         SearchRequest searchRequest = SearchRequest
@@ -96,11 +96,6 @@ public class ElasticSearchApiCalls implements SearchAPICalls {
     public co.elastic.clients.elasticsearch.core.ScrollRequest nextScrollRequest(final String scrollId) {
         return ScrollRequest
                 .of(scrollRequest -> scrollRequest.scrollId(scrollId).scroll(Time.of(t -> t.time(TIME_VALUE))));
-    }
-
-    @Override
-    public String searchScrollIndexes(final OpenSearchSourceConfiguration openSearchSourceConfiguration) {
-        return null;
     }
 
     private boolean deleteScrollId(String id) throws IOException {

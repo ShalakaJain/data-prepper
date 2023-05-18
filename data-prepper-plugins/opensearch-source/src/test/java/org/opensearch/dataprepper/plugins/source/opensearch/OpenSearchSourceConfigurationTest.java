@@ -56,6 +56,7 @@ public class OpenSearchSourceConfigurationTest {
                 "  sorting:\n" +
                 "   - sort_key: name\n" +
                 "     order: desc";
+
         final OpenSearchSourceConfiguration sourceConfiguration = objectMapper.readValue(sourceConfigurationYaml, OpenSearchSourceConfiguration.class);
         final ConnectionConfiguration connectionConfig = sourceConfiguration.getConnectionConfiguration();
         final SearchConfiguration searchConfiguration = sourceConfiguration.getSearchConfiguration();

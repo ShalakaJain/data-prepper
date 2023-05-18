@@ -76,7 +76,7 @@ public class SourceInfoProvider {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    HashMap<String, String> indexMap ;
+    private HashMap<String, String> indexMap ;
 
     public String getSourceInfo(final OpenSearchSourceConfiguration openSearchSourceConfiguration) {
         try {
@@ -115,6 +115,7 @@ public class SourceInfoProvider {
             datasource = ELASTIC_SEARCH;
         return datasource;
     }
+
     public SourceInfo checkStatus(final OpenSearchSourceConfiguration openSearchSourceConfiguration,final SourceInfo sourceInfo) throws IOException, ParseException {
         String osVersion = null;
         URL obj = new URL(openSearchSourceConfiguration.getHosts().get(0) + CLUSTER_STATS_ENDPOINTS);
@@ -154,10 +155,8 @@ public class SourceInfoProvider {
 
     public void versionCheckForOpenSearch(final OpenSearchSourceConfiguration openSearchSourceConfiguration, final SourceInfo sourceInfo, final OpenSearchClient client ,Buffer<Record<Event>> buffer)  throws TimeoutException, IOException {
         int osVersionIntegerValue = Integer.parseInt(sourceInfo.getOsVersion().replaceAll(REGULAR_EXPRESSION, ""));
-       // osVersionIntegerValue = 123; //to test Scroll API
         objectMapper.registerModule(new JavaTimeModule());
         final Duration rate = objectMapper.convertValue(openSearchSourceConfiguration.getSchedulingParameterConfiguration().getRate(), Duration.class);
-
         if ((sourceInfo.getDataSource().equalsIgnoreCase(OPEN_SEARCH))
                 && (osVersionIntegerValue >= VERSION_1_3_0)) {
             new Timer().scheduleAtFixedRate(new OpenSearchPITTask(openSearchSourceConfiguration,buffer,client),openSearchSourceConfiguration.getSchedulingParameterConfiguration().getStartTime().getSecond() , rate.toMillis());
@@ -165,31 +164,29 @@ public class SourceInfoProvider {
             new Timer().scheduleAtFixedRate(new OpenSearchScrollTask(openSearchSourceConfiguration,buffer),openSearchSourceConfiguration.getSchedulingParameterConfiguration().getStartTime().getSecond() , rate.toMillis());
         }
     }
-    public void versionCheckForElasticSearch(final OpenSearchSourceConfiguration openSearchSourceConfiguration, final SourceInfo sourceInfo, final ElasticsearchClient client ,Buffer<Record<Event>> buffer)  throws TimeoutException, IOException {
+    public void versionCheckForElasticSearch(final OpenSearchSourceConfiguration openSearchSourceConfiguration, final SourceInfo sourceInfo, final ElasticsearchClient esClient ,Buffer<Record<Event>> buffer)  throws TimeoutException, IOException {
         int osVersionIntegerValue = Integer.parseInt(sourceInfo.getOsVersion().replaceAll(REGULAR_EXPRESSION, ""));
-       // osVersionIntegerValue = 123; //to test Scroll API
-        ElasticSearchApiCalls elasticSearchApiCalls = new ElasticSearchApiCalls(client);
+        objectMapper.registerModule(new JavaTimeModule());
+        final Duration rate = objectMapper.convertValue(openSearchSourceConfiguration.getSchedulingParameterConfiguration().getRate(), Duration.class);
         if ((sourceInfo.getDataSource().equalsIgnoreCase(ELASTIC_SEARCH))
                 && (osVersionIntegerValue >= VERSION_7_10_0)) {
             if( BATCH_SIZE_VALUE < openSearchSourceConfiguration.getSearchConfiguration().getBatchSize()) {
                 if(!openSearchSourceConfiguration.getSearchConfiguration().getSorting().isEmpty()) {
-                    elasticSearchApiCalls.searchPitIndexesForPagination(openSearchSourceConfiguration, client, 0L, buffer);
+                    new Timer().scheduleAtFixedRate(new ElasticSearchPITPaginationTask(openSearchSourceConfiguration,buffer,esClient),openSearchSourceConfiguration.getSchedulingParameterConfiguration().getStartTime().getSecond() , rate.toMillis());
                 }
                 else{
                     LOG.info("Sort must contain at least one field");
                 }
             }
             else {
-                elasticSearchApiCalls.searchPitIndexes(null,openSearchSourceConfiguration,buffer);
+                new Timer().scheduleAtFixedRate(new ElasticSearchPITTask(openSearchSourceConfiguration,buffer,esClient),openSearchSourceConfiguration.getSchedulingParameterConfiguration().getStartTime().getSecond() , rate.toMillis());
             }
 
         } else if (sourceInfo.getDataSource().equalsIgnoreCase(ELASTIC_SEARCH) && (osVersionIntegerValue < VERSION_7_10_0)) {
-            elasticSearchApiCalls.generateScrollId(openSearchSourceConfiguration,buffer);
-            //   LOG.info("Scroll Response : {} ", scrollId);
-           /* String scrollResponse = openSearchApiCalls.searchScrollIndexes(openSearchSourceConfiguration);
-            LOG.info("Data in batches : {} ", scrollResponse);*/
+            new Timer().scheduleAtFixedRate(new ElasticScrollTask(openSearchSourceConfiguration,buffer,esClient),openSearchSourceConfiguration.getSchedulingParameterConfiguration().getStartTime().getSecond() , rate.toMillis());
         }
     }
+
     public void writeClusterDataToBuffer(final String responseBody,final Buffer<Record<Event>> buffer) throws TimeoutException {
         try {
             LOG.info("Write to buffer code started {} ",buffer);
@@ -210,6 +207,7 @@ public class SourceInfoProvider {
             buffer.write(jsonRecord, 1200);
         }
     }
+
     public List<IndicesRecord> callCatOpenSearchIndices(final OpenSearchClient client) throws IOException,ParseException {
         List<IndicesRecord> indexInfoList = client.cat().indices().valueBody();
         return indexInfoList;
@@ -317,7 +315,6 @@ public class SourceInfoProvider {
                 openSearchSourceConfiguration.getIndexParametersConfiguration().getInclude().isEmpty()) {
             catIndices = callCatElasticIndices(client);
 
-            //filtering out  based on exclude indices
             if (openSearchSourceConfiguration.getIndexParametersConfiguration().getExclude() != null
                     && !openSearchSourceConfiguration.getIndexParametersConfiguration().getExclude().isEmpty()) {
                 catIndices = catIndices.stream().filter(c -> !(openSearchSourceConfiguration.getIndexParametersConfiguration().getExclude().contains(c.index()))).
@@ -353,6 +350,6 @@ public class SourceInfoProvider {
         indexMap = getOpenSearchIndexMap(catIndices);
         LOG.info("Indexes  are {} :  ", indexMap);
         return catIndices;
-
     }
+
 }

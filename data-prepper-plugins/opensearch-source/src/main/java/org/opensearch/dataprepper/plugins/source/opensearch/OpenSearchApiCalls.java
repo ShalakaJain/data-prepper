@@ -194,7 +194,7 @@ public class OpenSearchApiCalls implements SearchAPICalls {
     }
 
     @Override
-    public void generateScrollId(final OpenSearchSourceConfiguration openSearchSourceConfiguration ,Buffer<Record<Event>> buffer) {
+    public void getScrollResponse(final OpenSearchSourceConfiguration openSearchSourceConfiguration ,Buffer<Record<Event>> buffer) {
         ScrollRequest scrollRequest = new ScrollRequest(new ScrollBuilder());
         StringBuilder indexList = Utility.getIndexList(openSearchSourceConfiguration);
         scrollRequest.setIndex(indexList);
@@ -211,11 +211,11 @@ public class OpenSearchApiCalls implements SearchAPICalls {
            LOG.error("Error occured "+e);
        }
     }
-    @Override
+  /*  @Override
     public String searchScrollIndexes(final OpenSearchSourceConfiguration openSearchSourceConfiguration) {
 
         return "responseBody";
-    }
+    }*/
 
     /*@Override
     public void delete(final String id, final Integer openSearchVersion) {

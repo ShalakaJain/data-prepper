@@ -14,7 +14,9 @@ import org.opensearch.client.transport.Endpoint;
 import org.opensearch.client.transport.endpoints.SimpleEndpoint;
 import java.util.HashMap;
 import java.util.Map;
+
 public class PITRequest implements JsonpSerializable {
+
     private StringBuilder index;
 
     private String keepAlive;
@@ -45,6 +47,7 @@ public class PITRequest implements JsonpSerializable {
     public void setParams(Map<String, String> params) {
         this.params = params;
     }
+
     public static final Endpoint<PITRequest, Map, ErrorResponse> ENDPOINT =
             new SimpleEndpoint<>(
                     r -> POST_REQUEST,

@@ -6,8 +6,11 @@
 package org.opensearch.dataprepper.plugins.source.opensearch;
 
 import org.opensearch.client.json.JsonpDeserializer;
+
 public class PITResponse  {
+
     public static JsonpDeserializer<PITResponse> PARSER;
+
     public String pitId ;
 
     public String getPitId() {
@@ -17,4 +20,5 @@ public class PITResponse  {
     public void setPitId(String pitId) {
         this.pitId = pitId;
     }
+
 }
