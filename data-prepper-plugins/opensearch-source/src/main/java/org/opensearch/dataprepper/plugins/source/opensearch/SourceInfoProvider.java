@@ -153,7 +153,7 @@ public class SourceInfoProvider {
         return sourceInfo;
     }
 
-    public void versionCheckForOpenSearch(final OpenSearchSourceConfiguration openSearchSourceConfiguration, final SourceInfo sourceInfo, final OpenSearchClient client ,Buffer<Record<Event>> buffer)  throws TimeoutException, IOException {
+    public void versionCheckForOpenSearch(final OpenSearchSourceConfiguration openSearchSourceConfiguration, final SourceInfo sourceInfo, final OpenSearchClient client ,Buffer<Record<Event>> buffer) throws TimeoutException, IOException{
         int osVersionIntegerValue = Integer.parseInt(sourceInfo.getOsVersion().replaceAll(REGULAR_EXPRESSION, ""));
         objectMapper.registerModule(new JavaTimeModule());
         final Duration rate = objectMapper.convertValue(openSearchSourceConfiguration.getSchedulingParameterConfiguration().getRate(), Duration.class);

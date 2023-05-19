@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +40,7 @@ import java.util.Map;
 
 public class OpenSearchApiCalls implements SearchAPICalls {
 
+    public static final int SUCCESS_CODE = 200;
     private static final String POINT_IN_TIME_KEEP_ALIVE = "keep_alive";
 
     private static final Logger LOG = LoggerFactory.getLogger(OpenSearchApiCalls.class);
@@ -81,47 +83,45 @@ public class OpenSearchApiCalls implements SearchAPICalls {
 
     @Override
     public void generatePitId(final OpenSearchSourceConfiguration openSearchSourceConfiguration , Buffer<Record<Event>> buffer) throws IOException {
-            try {
-                    System.out.println("Start PIT Process");
-                    String pitId = null;
-                    pitRequest = new PITRequest(new PITBuilder());
-                    int countIndices = sourceInfoProvider.getCatIndicesOpenSearch(openSearchSourceConfiguration,client).size();
-                    List<IndicesRecord> indicesList = sourceInfoProvider.getCatIndicesOpenSearch(openSearchSourceConfiguration,client);
-                    for(int count= 0 ; count < countIndices ; count++) {
-                        pitRequest.setIndex(new StringBuilder(indicesList.get(count).index()));
-                        Map<String, String> params = new HashMap<>();
-                        params.put(POINT_IN_TIME_KEEP_ALIVE, KEEP_ALIVE_VALUE);
-                        pitRequest.setQueryParameters(params);
-                        LOG.info("pitRequest" +pitRequest.toString());
-                        LOG.info("client._transportOptions()" + client );
-                        pitResponse = client._transport().performRequest(pitRequest, PITRequest.ENDPOINT, client._transportOptions());
-                        System.out.println("PIT Response is : {}  "+pitResponse);
-                        LOG.info("PIT Response is : {}  ", pitResponse );
-                        pitId = pitResponse.get(PIT_ID).toString();
-                        searchPitIndexes(pitId, openSearchSourceConfiguration , buffer);
-                        deletePitId(pitId,openSearchSourceConfiguration);
-                    }
-            } catch (OpenSearchException ose){
-                if(HttpStatus.SC_GATEWAY_TIMEOUT == ose.status() || HttpStatus.SC_INTERNAL_SERVER_ERROR == ose.status()) {
-                    LOG.info("Block to retry after sometime");
-                    BackoffService backoff = new BackoffService(openSearchSourceConfiguration.getMaxRetries());
-                    backoff.waitUntilNextTry();
-                    while (backoff.shouldRetry()) {
-                        pitResponse = client._transport().performRequest(pitRequest, PITRequest.ENDPOINT, client._transportOptions());
-                        if (pitResponse != null && pitResponse.size()>0) {
-                            backoff.doNotRetry();
-                            break;
-                        } else {
-                            LOG.info("** Retrying ** ");
-                            backoff.errorOccured();
-                        }
+        try {
+            System.out.println("Start PIT Process");
+            String pitId = null;
+            pitRequest = new PITRequest(new PITBuilder());
+            int countIndices = sourceInfoProvider.getCatIndicesOpenSearch(openSearchSourceConfiguration, client).size();
+            List<IndicesRecord> indicesList = sourceInfoProvider.getCatIndicesOpenSearch(openSearchSourceConfiguration, client);
+            for (int count = 0; count < countIndices; count++) {
+                pitRequest.setIndex(new StringBuilder(indicesList.get(count).index()));
+                Map<String, String> params = new HashMap<>();
+                params.put(POINT_IN_TIME_KEEP_ALIVE, KEEP_ALIVE_VALUE);
+                pitRequest.setQueryParameters(params);
+                LOG.info("pitRequest" + pitRequest.toString());
+                LOG.info("client._transportOptions()" + client);
+                pitResponse = client._transport().performRequest(pitRequest, PITRequest.ENDPOINT, client._transportOptions());
+                System.out.println("PIT Response is : {}  " + pitResponse);
+                LOG.info("PIT Response is : {}  ", pitResponse);
+                pitId = pitResponse.get(PIT_ID).toString();
+                searchPitIndexes(pitId, openSearchSourceConfiguration, buffer);
+                deletePitId(pitId, openSearchSourceConfiguration);
+            }
+        } catch (OpenSearchException ose) {
+            if (HttpStatus.SC_GATEWAY_TIMEOUT == ose.status() || HttpStatus.SC_INTERNAL_SERVER_ERROR == ose.status()) {
+                LOG.info("Block to retry after sometime");
+                BackoffService backoff = new BackoffService(openSearchSourceConfiguration.getMaxRetries());
+                backoff.waitUntilNextTry();
+                while (backoff.shouldRetry()) {
+                    pitResponse = client._transport().performRequest(pitRequest, PITRequest.ENDPOINT, client._transportOptions());
+                    if (pitResponse != null && pitResponse.size() > 0) {
+                        backoff.doNotRetry();
+                        break;
+                    } else {
+                        LOG.info("** Retrying ** ");
+                        backoff.errorOccured();
                     }
                 }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            } catch (ParseException e) {
-                throw new RuntimeException(e);
             }
+        } catch (IOException | ParseException | NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
     @Override
     public void searchPitIndexes(final String pitId ,final OpenSearchSourceConfiguration openSearchSourceConfiguration ,Buffer<Record<Event>> buffer) {
@@ -241,15 +241,19 @@ public class OpenSearchApiCalls implements SearchAPICalls {
         LOG.debug("Delete successful "+ clearScrollResponse.succeeded());
     }
 
-    private void deletePitId(String pitId , OpenSearchSourceConfiguration openSearchSourceConfiguration) throws IOException {
-        LOG.info("Delete successful "+ pitId);
+    private void deletePitId(final String pitId , final OpenSearchSourceConfiguration openSearchSourceConfiguration) throws IOException, NoSuchFieldException, IllegalAccessException {
+        LOG.info("PIT Id to be deleted " + pitId);
         Map<String, String> inputMap = new HashMap<>();
         inputMap.put(PIT_ID, pitId);
-        LOG.info("Request Object "+inputMap);
-        Map executeResponse = execute(Map.class, "_search/point_in_time", inputMap,"DELETE" , openSearchSourceConfiguration);
-        LOG.info("Delete Pit ID Response " + executeResponse);
-        List<Map> pits = (List<Map>) executeResponse.get("pits");
-        LOG.info("Delete successful "+ pits.get(0).get("successful"));
+        LOG.info("Request Object " + inputMap);
+        DeletePITResponse deletePITResponse = execute(DeletePITResponse.class, "_search/point_in_time", inputMap, "DELETE", openSearchSourceConfiguration);
+        LOG.info("Delete Response " + deletePITResponse);
+        if (deletePITResponse != null&& deletePITResponse.getCode()==SUCCESS_CODE) {
+            LOG.info("Delete successful " + deletePITResponse.getPits().get(0).getSuccessful());
+        }
+        else{
+            throw new RuntimeException(" Delete operation failed ");
+        }
     }
 
 
@@ -291,25 +295,35 @@ public class OpenSearchApiCalls implements SearchAPICalls {
         return getSearchResponse(httpClient,httpGet);
     }
 
-    private <T> T execute(Class<T> responseType, String uri, Map<String,String> inputMap, String httpMethod , OpenSearchSourceConfiguration openSearchSourceConfiguration) throws IOException {
-        StringEntity requestEntity = new StringEntity(new ObjectMapper().writeValueAsString(inputMap));
-        URI httpUri = URI.create(openSearchSourceConfiguration.getHosts().get(0));
+    private <T> T execute(final Class<T> responseType, final String uri, final Map<String,String> requestObject,final String httpMethod,
+                          final OpenSearchSourceConfiguration openSearchSourceConfiguration)
+            throws IOException, NoSuchFieldException, IllegalAccessException {
+        StringEntity requestEntity = new StringEntity(new ObjectMapper().writeValueAsString(requestObject));
+        URI httpUri = URI.create(openSearchSourceConfiguration.getHosts().get(0) + uri);
         HttpUriRequestBase operationRequest = new HttpUriRequestBase(httpMethod, httpUri);
         operationRequest.setHeader("Accept", ContentType.APPLICATION_JSON);
         operationRequest.setHeader("Content-type", ContentType.APPLICATION_JSON);
         operationRequest.setEntity(requestEntity);
-        CloseableHttpResponse pitResponse = getCloseableHttpResponse(operationRequest);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(pitResponse.getEntity().getContent()));
+        CloseableHttpResponse closeableHttpResponse = getCloseableHttpResponse(operationRequest);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(closeableHttpResponse.getEntity().getContent()));
         StringBuffer result = new StringBuffer();
         String line = "";
         while ((line = reader.readLine()) != null) {
             result.append(line);
+
         }
-        return objectMapper.readValue(result.toString(), responseType);
+        T response = objectMapper.readValue(result.toString(), responseType);
+        Field codeField = response.getClass().getDeclaredField("code");
+        if (codeField != null) {
+            codeField.setAccessible(true);
+            codeField.set(response, closeableHttpResponse.getCode());
+        }
+
+        return response;
     }
 
     @Deprecated
-    private CloseableHttpResponse getCloseableHttpResponse( HttpUriRequestBase operationRequest) throws IOException {
+    private CloseableHttpResponse getCloseableHttpResponse( final HttpUriRequestBase operationRequest) throws IOException {
         CloseableHttpClient httpClient= HttpClients.createDefault();
         CloseableHttpResponse pitResponse = httpClient.execute(operationRequest);
         LOG.debug("Pit Response "+pitResponse);

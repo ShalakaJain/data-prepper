@@ -5,6 +5,8 @@
 
 package org.opensearch.dataprepper.plugins.source.opensearch;
 
+
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,6 +26,11 @@ public class Utility {
         indexList.append(includeIndexes);
         indexList.append(",-*"+excludeIndexes);
         return indexList;
+    }
+
+    @Deprecated
+    public static Object createRequest(Class<?> request) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        return request.newInstance();
     }
 
 }
