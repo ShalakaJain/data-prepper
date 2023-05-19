@@ -12,7 +12,9 @@ import org.slf4j.LoggerFactory;
 public class BackoffService {
  
  public int defaultRetries=2;
+
  public long defaultWaitTimeInMills=10000;
+
  private int numberOfRetries;
  
  private int numberOfTriesLeft;
@@ -32,6 +34,7 @@ public class BackoffService {
  public boolean shouldRetry() {
      return numberOfTriesLeft > 0;
  }
+
  public void errorOccured() {
    
    numberOfTriesLeft--;
@@ -41,7 +44,8 @@ public class BackoffService {
    waitUntilNextTry();
    timeToWait += random.nextInt(1000);
  }
-public void waitUntilNextTry() {
+
+ public void waitUntilNextTry() {
   
   try {
     Thread.sleep(timeToWait);
@@ -49,14 +53,17 @@ public void waitUntilNextTry() {
     e.printStackTrace();
   }
  }
-public long getTimeToWait() {
+ public long getTimeToWait() {
    return this.timeToWait;
 }
-public void doNotRetry() {
+
+ public void doNotRetry() {
     numberOfTriesLeft = 0;
 }
+
  public void reset() {
-  this.numberOfTriesLeft = numberOfRetries;
-  this.timeToWait = defaultTimeToWait;
+   this.numberOfTriesLeft = numberOfRetries;
+   this.timeToWait = defaultTimeToWait;
  }
+
 }

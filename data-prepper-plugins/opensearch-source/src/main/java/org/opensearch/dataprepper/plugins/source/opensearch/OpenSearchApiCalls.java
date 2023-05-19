@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.dataprepper.plugins.source.opensearch;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -23,7 +28,6 @@ import org.opensearch.dataprepper.model.event.Event;
 import org.opensearch.dataprepper.model.record.Record;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -33,17 +37,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
 public class OpenSearchApiCalls implements SearchAPICalls {
 
-    public static final int SUCCESS_CODE = 200;
-    private static final String POINT_IN_TIME_KEEP_ALIVE = "keep_alive";
-
     private static final Logger LOG = LoggerFactory.getLogger(OpenSearchApiCalls.class);
+
+    public static final int SUCCESS_CODE = 200;
+
+    private static final String POINT_IN_TIME_KEEP_ALIVE = "keep_alive";
 
     private static final String KEEP_ALIVE_VALUE = "24h";
 
@@ -84,7 +84,6 @@ public class OpenSearchApiCalls implements SearchAPICalls {
     @Override
     public void generatePitId(final OpenSearchSourceConfiguration openSearchSourceConfiguration , Buffer<Record<Event>> buffer) throws IOException {
         try {
-            System.out.println("Start PIT Process");
             String pitId = null;
             pitRequest = new PITRequest(new PITBuilder());
             int countIndices = sourceInfoProvider.getCatIndicesOpenSearch(openSearchSourceConfiguration, client).size();
@@ -94,11 +93,7 @@ public class OpenSearchApiCalls implements SearchAPICalls {
                 Map<String, String> params = new HashMap<>();
                 params.put(POINT_IN_TIME_KEEP_ALIVE, KEEP_ALIVE_VALUE);
                 pitRequest.setQueryParameters(params);
-                LOG.info("pitRequest" + pitRequest.toString());
-                LOG.info("client._transportOptions()" + client);
                 pitResponse = client._transport().performRequest(pitRequest, PITRequest.ENDPOINT, client._transportOptions());
-                System.out.println("PIT Response is : {}  " + pitResponse);
-                LOG.info("PIT Response is : {}  ", pitResponse);
                 pitId = pitResponse.get(PIT_ID).toString();
                 searchPitIndexes(pitId, openSearchSourceConfiguration, buffer);
                 deletePitId(pitId, openSearchSourceConfiguration);
@@ -123,17 +118,17 @@ public class OpenSearchApiCalls implements SearchAPICalls {
             throw new RuntimeException(e);
         }
     }
+
     @Override
     public void searchPitIndexes(final String pitId ,final OpenSearchSourceConfiguration openSearchSourceConfiguration ,Buffer<Record<Event>> buffer) {
         try
         {
-            int sizeForPagination = 20;
+            int sizeForPagination = 100;
             CloseableHttpClient httpClient= HttpClients.createDefault();
             HttpGet httpGet=new HttpGet(openSearchSourceConfiguration.getHosts().get(0)+"_search");
             httpGet.setHeader("Accept", ContentType.APPLICATION_JSON);
             httpGet.setHeader("Content-type",ContentType.APPLICATION_JSON);
             if( BATCH_SIZE_VALUE > openSearchSourceConfiguration.getSearchConfiguration().getBatchSize()) {
-                System.out.println("Not to Paginate");
                 currentBatchSize = openSearchSourceConfiguration.getSearchConfiguration().getBatchSize();
                 pitSearchRequestObj.put("size", currentBatchSize);
                 if (openSearchSourceConfiguration.getQueryParameterConfiguration() != null && openSearchSourceConfiguration.getQueryParameterConfiguration().getFields() != null) {
@@ -149,19 +144,16 @@ public class OpenSearchApiCalls implements SearchAPICalls {
                 pitObj.put(POINT_IN_TIME_KEEP_ALIVE, KEEP_ALIVE_VALUE);
                 pitSearchRequestObj.put(POINT_IN_TIME, pitObj);
 
-                System.out.println("print request : " + pitSearchRequestObj.toString());
+                LOG.debug("print request : " + pitSearchRequestObj.toString());
                 StringEntity stringEntity = new StringEntity(pitSearchRequestObj.toString());
                 httpGet.setEntity(stringEntity);
-                sourceInfoProvider.writeClusterDataToBuffer(stringEntity.toString(), buffer);
+                StringBuffer result = getSearchResponse(httpClient,httpGet,openSearchSourceConfiguration);
+                sourceInfoProvider.writeClusterDataToBuffer(result.toString(), buffer);
 
             } else {
-                //paginate
-                int i =0;
                 List<Integer> searchAfter = null;
-                System.out.println("Paginate");
                 currentBatchSize = openSearchSourceConfiguration.getSearchConfiguration().getBatchSize();
                 while(currentBatchSize > 0 ) {
-                    LOG.info("Paginate " + i++ + "current size "+currentBatchSize);
                     stringEntity = handlePitSearchRequest(openSearchSourceConfiguration, pitId, sizeForPagination, searchAfter, httpClient, httpGet);
                     PitSearchResponse pitSearchResponse = objectMapper.readValue(stringEntity.toString(), PitSearchResponse.class);
                     List<Hit> hit = pitSearchResponse.getHits().getHits();
@@ -175,21 +167,7 @@ public class OpenSearchApiCalls implements SearchAPICalls {
                 }
             }
         } catch (Exception e){
-           /* if(HttpStatus.SC_GATEWAY_TIMEOUT == pitCloseableResponse.getCode() || HttpStatus.SC_INTERNAL_SERVER_ERROR == pitCloseableResponse.getCode()) {
-                LOG.info("Block to retry after sometime");
-                BackoffService backoff = new BackoffService(openSearchSourceConfiguration.getMaxRetries());
-                backoff.waitUntilNextTry();
-                while (backoff.shouldRetry()) {
-                    pitResponse = httpAsyncClient.execute(httpDelete);
-                    if (HttpStatus.SC_GATEWAY_TIMEOUT != pitResponse.getCode() && HttpStatus.SC_INTERNAL_SERVER_ERROR != pitResponse.getCode()) {
-                        backoff.doNotRetry();
-                        break;
-                    } else {
-                        LOG.info("** Retrying **");
-                        backoff.errorOccured();
-                    }
-                }
-            }*/
+           LOG.error("Error occured while running search pit indexes {}",e.getMessage());
         }
     }
 
@@ -208,31 +186,9 @@ public class OpenSearchApiCalls implements SearchAPICalls {
         }
        catch (Exception e)
        {
-           LOG.error("Error occured "+e);
+           LOG.error("Error occured while execuitng scroll request {} "+e.getMessage());
        }
     }
-  /*  @Override
-    public String searchScrollIndexes(final OpenSearchSourceConfiguration openSearchSourceConfiguration) {
-
-        return "responseBody";
-    }*/
-
-    /*@Override
-    public void delete(final String id, final Integer openSearchVersion) {
-        LOG.info("PIT or Scroll ID to be deleted - " + id);
-        try {
-            if (openSearchVersion.intValue() >= OPEN_SEARCH_VERSION) {
-                 deletePitId(id);
-            } else {
-                 deleteScrollId(id, client);
-
-            }
-
-        } catch (IOException e) {
-            LOG.error("Error occured while closing PIT " + e);
-        }
-
-    }*/
 
     private void deleteScrollId(String id, OpenSearchClient client) throws IOException {
         ClearScrollRequest scrollRequest=new ClearScrollRequest.Builder().scrollId(id).build();
@@ -256,7 +212,6 @@ public class OpenSearchApiCalls implements SearchAPICalls {
         }
     }
 
-
     public StringBuffer handlePitSearchRequest(OpenSearchSourceConfiguration openSearchSourceConfiguration , String pitId , int size , List<Integer> searchAfter , CloseableHttpClient httpClient , HttpGet httpGet) throws IOException {
 
         pitSearchRequestObj.put("size", size );
@@ -268,6 +223,7 @@ public class OpenSearchApiCalls implements SearchAPICalls {
             queryInnerObj.put("match", matchObj);
             pitSearchRequestObj.put("query", queryInnerObj);
         }
+
         JSONObject pitObj = new JSONObject();
         pitObj.put(POINT_IN_TIME_ID, pitId);
         pitObj.put(POINT_IN_TIME_KEEP_ALIVE, KEEP_ALIVE_VALUE);
@@ -287,12 +243,12 @@ public class OpenSearchApiCalls implements SearchAPICalls {
             pitSearchRequestObj.put("search_after",searchAfter);
         }
 
-        System.out.println("print request : " + pitSearchRequestObj.toString());
+        LOG.debug("print request : " + pitSearchRequestObj.toString());
         StringEntity stringEntity = new StringEntity(pitSearchRequestObj.toString());
         currentBatchSize = currentBatchSize-size;
-        LOG.info(" current batch Size "+currentBatchSize);
+        LOG.debug(" current batch Size "+currentBatchSize);
         httpGet.setEntity(stringEntity);
-        return getSearchResponse(httpClient,httpGet);
+        return getSearchResponse(httpClient,httpGet,openSearchSourceConfiguration);
     }
 
     private <T> T execute(final Class<T> responseType, final String uri, final Map<String,String> requestObject,final String httpMethod,
@@ -305,20 +261,12 @@ public class OpenSearchApiCalls implements SearchAPICalls {
         operationRequest.setHeader("Content-type", ContentType.APPLICATION_JSON);
         operationRequest.setEntity(requestEntity);
         CloseableHttpResponse closeableHttpResponse = getCloseableHttpResponse(operationRequest);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(closeableHttpResponse.getEntity().getContent()));
-        StringBuffer result = new StringBuffer();
-        String line = "";
-        while ((line = reader.readLine()) != null) {
-            result.append(line);
-
-        }
-        T response = objectMapper.readValue(result.toString(), responseType);
+        T response = objectMapper.readValue(readBuffer(closeableHttpResponse).toString(), responseType);
         Field codeField = response.getClass().getDeclaredField("code");
         if (codeField != null) {
             codeField.setAccessible(true);
             codeField.set(response, closeableHttpResponse.getCode());
         }
-
         return response;
     }
 
@@ -342,15 +290,38 @@ public class OpenSearchApiCalls implements SearchAPICalls {
         return null;
     }
 
-    private StringBuffer getSearchResponse(CloseableHttpClient httpClient, HttpGet httpGet) throws IOException {
-        StringBuffer result = new StringBuffer();
+    private StringBuffer getSearchResponse(CloseableHttpClient httpClient, HttpGet httpGet , OpenSearchSourceConfiguration openSearchSourceConfiguration) throws IOException {
+
         CloseableHttpResponse pitCloseableResponse = httpClient.execute(httpGet);
+
+        if (HttpStatus.SC_GATEWAY_TIMEOUT == pitCloseableResponse.getCode() || HttpStatus.SC_INTERNAL_SERVER_ERROR == pitCloseableResponse.getCode()) {
+            LOG.info("Block to retry after sometime");
+            BackoffService backoff = new BackoffService(openSearchSourceConfiguration.getMaxRetries());
+            backoff.waitUntilNextTry();
+            while (backoff.shouldRetry()) {
+               pitCloseableResponse = httpClient.execute(httpGet);
+               if (HttpStatus.SC_GATEWAY_TIMEOUT != pitCloseableResponse.getCode() && HttpStatus.SC_INTERNAL_SERVER_ERROR != pitCloseableResponse.getCode()) {
+                  backoff.doNotRetry();
+                  break;
+               } else {
+                    LOG.info(" Retrying after {}");
+                    backoff.errorOccured();
+               }
+            }
+            return null;
+        } else {
+            return readBuffer(pitCloseableResponse);
+        }
+    }
+
+    private StringBuffer readBuffer(CloseableHttpResponse pitCloseableResponse ) throws IOException {
+        StringBuffer result = null;
         BufferedReader reader = new BufferedReader(new InputStreamReader(pitCloseableResponse.getEntity().getContent()));
         String line = "";
         while ((line = reader.readLine()) != null) {
             result.append(line);
         }
-        LOG.info("Search response :  " + result);
+        LOG.debug("Search response :  " + result);
         return result;
     }
 }

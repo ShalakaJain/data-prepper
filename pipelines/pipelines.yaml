@@ -23,9 +23,9 @@ opensearch-pipeline:
         job_count: 1
         start_time: 2023-05-15T18:00:00
       query:
-        fields: ["play_name : hamlet","speaker : 1"]
+        fields: ["play_name : Henry VI Part 1"]
       search_options:
-        batch_size: 1000
+        batch_size: 1006
         expand_wildcards: "open"
         sorting:
           - sort_key: "line_id"
